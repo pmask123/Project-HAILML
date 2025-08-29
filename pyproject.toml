@@ -9,4 +9,5 @@ dependencies = [
     "open-webui>=0.6.5",
     "pre-commit>=4.3.0",
     "ray[serve]>=2.49.0",
+    "uv>=0.8.14",
 ]
