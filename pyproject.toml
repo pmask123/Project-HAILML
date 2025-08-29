@@ -5,6 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "black>=25.1.0",
     "open-webui>=0.6.5",
+    "pre-commit>=4.3.0",
     "ray[serve]>=2.49.0",
 ]
