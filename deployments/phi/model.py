@@ -1,24 +1,19 @@
-import requests
-import torch
-import os
-import io
-from PIL import Image
-import soundfile as sf
-from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
-from urllib.request import urlopen
-
+from typing import Dict
 import requests
 from starlette.requests import Request
-from typing import Dict
 
+from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
 from ray import serve
 
+from .schemas import PhiInput
 
-class Phi4Translate:
+
+@serve.deployment(num_replicas=1, ray_actor_options={"num_cpus": 1, "num_gpus": 1})
+class Phi4:
     def __init__(self, model_dir) -> None:
         # Load model and processor
         self.processor = AutoProcessor.from_pretrained(
-            model_path, trust_remote_code=True
+            model_dir, trust_remote_code=True
         )
         self.model = AutoModelForCausalLM.from_pretrained(
             model_dir,
@@ -29,7 +24,7 @@ class Phi4Translate:
         ).cuda()
 
         # Load generation config
-        self.generation_config = GenerationConfig.from_pretrained(model_path)
+        self.generation_config = GenerationConfig.from_pretrained(model_dir)
 
     def _get_text_prompt(self, system_prompt: str, user_prompt: str) -> str:
 
@@ -38,8 +33,10 @@ class Phi4Translate:
         )
         return prompt
 
-    def pipeline(self, system_prompt: str, user_prompt: str) -> str:
-        prompt = self._get_text_prompt(user_prompt, system_prompt)
+    def pipeline(self, model_input: PhiInput) -> str:
+        prompt = self._get_text_prompt(
+            model_input.system_prompt, model_input.user_prompt
+        )
 
         # Pre-process
         inputs = self.processor(text=prompt, return_tensors="pt").to("cuda:0")
@@ -58,13 +55,23 @@ class Phi4Translate:
         )[0]
         return response
 
+    async def __call__(self, http_request: Request) -> str:
+        inputs: Dict = await http_request.json()
+        model_input = PhiInput(**inputs)
+        return self.pipeline(model_input)
 
-if __name__ == "__main__":
 
-    model_path = "microsoft/Phi-4-multimodal-instruct"
-    model = Phi4Translate(model_path)
+phi_app = Phi4.bind(model_dir="microsoft/Phi-4-multimodal-instruct")
+# if __name__ == "__main__":
 
-    system_prompt = "Translate the following user prompt into French."
-    user_prompt = "Hello my name is Peter"
+### Local Model Testing
+# model_path = "microsoft/Phi-4-multimodal-instruct"
+# model = Phi4Translate(model_path)
 
-    model.pipeline()
+# system_prompt = "Translate the following user prompt into Chinese Mandarin."
+# user_prompt = "Hello my name is Peter"
+
+# model_inputs = PhiInput(system_prompt=system_prompt, user_prompt=user_prompt)
+
+# result = model.pipeline(model_inputs)
+# print(result)
