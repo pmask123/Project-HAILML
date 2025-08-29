@@ -5,7 +5,7 @@ from starlette.requests import Request
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
 from ray import serve
 
-from .schemas import PhiInput
+from schemas.model_schemas import PhiInput
 
 
 @serve.deployment(num_replicas=1, ray_actor_options={"num_cpus": 1, "num_gpus": 1})
@@ -62,16 +62,3 @@ class Phi4:
 
 
 phi_app = Phi4.bind(model_dir="microsoft/Phi-4-multimodal-instruct")
-# if __name__ == "__main__":
-
-### Local Model Testing
-# model_path = "microsoft/Phi-4-multimodal-instruct"
-# model = Phi4Translate(model_path)
-
-# system_prompt = "Translate the following user prompt into Chinese Mandarin."
-# user_prompt = "Hello my name is Peter"
-
-# model_inputs = PhiInput(system_prompt=system_prompt, user_prompt=user_prompt)
-
-# result = model.pipeline(model_inputs)
-# print(result)
